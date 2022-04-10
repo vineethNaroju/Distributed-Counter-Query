@@ -57,6 +57,8 @@ func (node *Node) Inc(key string, val int) {
 	} else {
 		node.store[key] = val
 	}
+
+	fmt.Println(time.Now().String(), "|", node.name, "inc", key, "by", val, "results in", node.store[key])
 }
 
 func (node *Node) consumeNodeListDaemon() {
@@ -68,11 +70,21 @@ func (node *Node) consumeNodeListDaemon() {
 
 			node.nodeList = nl
 
-			fmt.Println(time.Now().String() + "| Node " + node.name + " received node list of size " + fmt.Sprint(len(nl)))
+			fmt.Println(time.Now().String(), "|", node.name, "received node list", node.nodeNames(nl))
 
 			node.nodeListMutex.Unlock()
 		}
 	}()
+}
+
+func (node *Node) nodeNames(nodeList []*Node) []string {
+	names := []string{}
+
+	for _, val := range nodeList {
+		names = append(names, val.name)
+	}
+
+	return names
 }
 
 func (node *Node) Query(query *Query) {
@@ -90,6 +102,8 @@ func (node *Node) queryLoop() {
 
 			val, ok := node.queryFrequency[query]
 
+			fmt.Println(time.Now().String(), "|", node.name, "query:", query.key, "nodeResponse:", query.nodeResponse, "node-query-freq:", val, "node-processed-query:", ok)
+
 			if ok {
 				if 1+val > query.maxProcessFrequency {
 					node.queryFrequencyMutex.Unlock()
@@ -103,7 +117,7 @@ func (node *Node) queryLoop() {
 
 			node.queryFrequencyMutex.Unlock()
 
-			go query.UpdateNodeResponse(node)
+			query.UpdateNodeResponse(node)
 			go node.publishQueryToRandomNodes(query)
 		}
 	}()
@@ -121,9 +135,41 @@ func (node *Node) publishQueryToRandomNodes(query *Query) {
 
 	node.nodeListMutex.RUnlock()
 
-	for i := 0; i < query.chatterSize; i++ {
+	notQueriedNodes := []*Node{}
+
+	query.nodeResponseMutex.RLock()
+
+	for _, val := range nodes {
+		if _, ok := query.nodeResponse[val.name]; !ok {
+			notQueriedNodes = append(notQueriedNodes, val)
+		}
+	}
+
+	query.nodeResponseMutex.RUnlock()
+
+	cs := query.chatterSize
+
+	queryNodes := []*Node{}
+
+	for len(notQueriedNodes) > 0 && cs > 0 {
+
+		cs--
+		n := len(notQueriedNodes)
+		rid := rand.Intn(n)
+
+		queryNodes = append(queryNodes, notQueriedNodes[rid])
+
+		notQueriedNodes[rid], notQueriedNodes[n-1] = notQueriedNodes[n-1], notQueriedNodes[rid]
+
+		notQueriedNodes = notQueriedNodes[:n-1]
+	}
+
+	for i := 0; i < len(queryNodes); i++ {
+
+		fmt.Println(time.Now().String(), "|", node.name, "publish query", query.key, "to", queryNodes[i].name)
+
 		go func(nd *Node) {
 			nd.queryChannel <- query
-		}(nodes[rand.Intn(len(nodes))])
+		}(queryNodes[i])
 	}
 }
