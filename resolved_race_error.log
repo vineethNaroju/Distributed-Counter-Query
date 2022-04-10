@@ -1,0 +1,39 @@
+D:\Repos\Distributed-Counter-Query>go run -race .
+==================
+WARNING: DATA RACE
+Read at 0x00c00015f598 by goroutine 279:
+  main.(*Node).publishQueryToRandomNodes()
+      D:/Repos/Distributed-Counter-Query/Node.go:137 +0x64
+  main.(*Node).queryLoop.func1┬╖dwrap┬╖3()
+      D:/Repos/Distributed-Counter-Query/Node.go:129 +0x47
+
+Previous write at 0x00c00015f598 by goroutine 106:
+  main.(*Node).consumeNodeListDaemon.func1()
+      D:/Repos/Distributed-Counter-Query/Node.go:75 +0xf4
+
+Goroutine 279 (running) created at:
+  main.(*Node).queryLoop.func1()
+      D:/Repos/Distributed-Counter-Query/Node.go:129 +0x55a
+
+Goroutine 106 (running) created at:
+  main.(*Node).consumeNodeListDaemon()
+      D:/Repos/Distributed-Counter-Query/Node.go:69 +0x90
+  main.NewNode()
+      D:/Repos/Distributed-Counter-Query/Node.go:36 +0x359
+  main.Loadtest()
+      D:/Repos/Distributed-Counter-Query/loadtest.go:34 +0x1bc
+  main.main()
+      D:/Repos/Distributed-Counter-Query/main.go:5 +0x24
+==================
+2022-04-11 00:33:34.554947 +0530 IST m=+2.546855101 | aggregrate of key: abc val: 6934
+2022-04-11 00:33:35.0633858 +0530 IST m=+3.055293901 | aggregrate of key: abc val: 6934
+2022-04-11 00:33:35.5744957 +0530 IST m=+3.566403801 | aggregrate of key: abc val: 6934
+2022-04-11 00:33:36.0749266 +0530 IST m=+4.066834701 | aggregrate of key: abc val: 6934
+2022-04-11 00:33:36.5798232 +0530 IST m=+4.571731301 | aggregrate of key: abc val: 6934
+2022-04-11 00:33:37.0910641 +0530 IST m=+5.082972201 | aggregrate of key: abc val: 6934
+2022-04-11 00:33:37.6061426 +0530 IST m=+5.598050701 | aggregrate of key: abc val: 6934
+2022-04-11 00:33:38.1152657 +0530 IST m=+6.107173801 | aggregrate of key: abc val: 6934
+2022-04-11 00:33:38.6244185 +0530 IST m=+6.616326601 | aggregrate of key: abc val: 6934
+2022-04-11 00:33:39.1351601 +0530 IST m=+7.127068201 | aggregrate of key: abc val: 6934
+2022-04-11 00:33:39.645419 +0530 IST m=+7.637327101 | aggregrate of key: abc val: 6934
+exit status 0xc000013a

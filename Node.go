@@ -10,13 +10,13 @@ import (
 type Node struct {
 	name                string
 	store               map[string]int
-	storeMutex          *sync.RWMutex
+	storeMutex          *sync.Mutex
 	nodeListChannel     chan []*Node
 	nodeList            []*Node
-	nodeListMutex       *sync.RWMutex
+	nodeListMutex       *sync.Mutex
 	queryChannel        chan *Query
 	queryFrequency      map[*Query]int
-	queryFrequencyMutex *sync.RWMutex
+	queryFrequencyMutex *sync.Mutex
 	printInfo           bool
 }
 
@@ -24,12 +24,12 @@ func NewNode(name string, printInfo bool) *Node {
 	node := &Node{
 		name:                name,
 		store:               make(map[string]int),
-		storeMutex:          &sync.RWMutex{},
+		storeMutex:          &sync.Mutex{},
 		nodeListChannel:     make(chan []*Node),
-		nodeListMutex:       &sync.RWMutex{},
+		nodeListMutex:       &sync.Mutex{},
 		queryChannel:        make(chan *Query),
 		queryFrequency:      make(map[*Query]int),
-		queryFrequencyMutex: &sync.RWMutex{},
+		queryFrequencyMutex: &sync.Mutex{},
 		printInfo:           printInfo,
 	}
 
@@ -40,8 +40,8 @@ func NewNode(name string, printInfo bool) *Node {
 }
 
 func (node *Node) Get(key string) int {
-	node.storeMutex.RLock()
-	defer node.storeMutex.RUnlock()
+	node.storeMutex.Lock()
+	defer node.storeMutex.Unlock()
 
 	if val, ok := node.store[key]; ok {
 		return val
@@ -79,6 +79,8 @@ func (node *Node) consumeNodeListDaemon() {
 			}
 
 			node.nodeListMutex.Unlock()
+
+			time.Sleep(time.Millisecond * 10)
 		}
 	}()
 }
@@ -112,40 +114,44 @@ func (node *Node) queryLoop() {
 				fmt.Println(time.Now().String(), "|", node.name, "query:", query.key, "nodeResponse:", query.nodeResponse, "node-query-freq:", val, "node-processed-query:", ok)
 			}
 
-			if ok {
-				if 1+val > query.maxProcessFrequency {
-					node.queryFrequencyMutex.Unlock()
-					continue
-				} else {
-					node.queryFrequency[query] += 1
-				}
-			} else {
+			shouldProcess := true
+
+			if ok && 1+val <= query.maxProcessFrequency {
+				node.queryFrequency[query] += 1
+			} else if !ok {
 				node.queryFrequency[query] = 1
+			} else {
+				shouldProcess = false
 			}
 
 			node.queryFrequencyMutex.Unlock()
 
-			query.UpdateNodeResponse(node)
-			go node.publishQueryToRandomNodes(query)
+			if shouldProcess {
+				query.UpdateNodeResponse(node)
+				go node.publishQueryToRandomNodes(query)
+			}
+
+			time.Sleep(time.Millisecond * 10)
 		}
 	}()
 }
 
 func (node *Node) publishQueryToRandomNodes(query *Query) {
 
+	node.nodeListMutex.Lock()
+
 	if len(node.nodeList) <= 1 {
+		node.nodeListMutex.Unlock()
 		return
 	}
 
-	node.nodeListMutex.RLock()
-
 	nodes := node.nodeList
 
-	node.nodeListMutex.RUnlock()
+	node.nodeListMutex.Unlock()
 
 	notQueriedNodes := []*Node{}
 
-	query.nodeResponseMutex.RLock()
+	query.nodeResponseMutex.Lock()
 
 	for _, val := range nodes {
 		if _, ok := query.nodeResponse[val.name]; !ok {
@@ -153,7 +159,7 @@ func (node *Node) publishQueryToRandomNodes(query *Query) {
 		}
 	}
 
-	query.nodeResponseMutex.RUnlock()
+	query.nodeResponseMutex.Unlock()
 
 	cs := query.chatterSize
 
@@ -174,7 +180,9 @@ func (node *Node) publishQueryToRandomNodes(query *Query) {
 
 	for i := 0; i < len(queryNodes); i++ {
 
-		fmt.Println(time.Now().String(), "|", node.name, "publish query:", query.key, "to", queryNodes[i].name)
+		if node.printInfo {
+			fmt.Println(time.Now().String(), "|", node.name, "publish query:", query.key, "to", queryNodes[i].name)
+		}
 
 		go func(nd *Node) {
 			nd.queryChannel <- query

@@ -24,5 +24,6 @@ Query -
 2. A status daemon to display node-reponse periodically.
 
 # TODO
-1. All configurable replicas to each node and write ops (sync + async) to subset replicas.
-2. Configurable process-query loop count for each node.
+1. Implement convergence detection and end query daemon. (priority)
+2. All configurable replicas to each node and write ops (sync + async) to subset replicas. (replicas will be separate repo)
+3. Configurable process-query loop count for each node. (boring)

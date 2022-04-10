@@ -8,14 +8,14 @@ import (
 
 type Tracker struct {
 	nodeStore      map[string]*Node
-	nodeStoreMutex *sync.RWMutex
+	nodeStoreMutex *sync.Mutex
 }
 
 func NewTracker() *Tracker {
 
 	tracker := &Tracker{
 		nodeStore:      make(map[string]*Node),
-		nodeStoreMutex: &sync.RWMutex{},
+		nodeStoreMutex: &sync.Mutex{},
 	}
 
 	tracker.publishNodeListDaemon()
@@ -42,13 +42,13 @@ func (tracker *Tracker) publishNodeListDaemon() {
 
 			nodeList := []*Node{}
 
-			tracker.nodeStoreMutex.RLock()
+			tracker.nodeStoreMutex.Lock()
 
 			for _, val := range tracker.nodeStore {
 				nodeList = append(nodeList, val)
 			}
 
-			tracker.nodeStoreMutex.RUnlock()
+			tracker.nodeStoreMutex.Unlock()
 
 			for _, val := range nodeList {
 				go func(nd *Node) {

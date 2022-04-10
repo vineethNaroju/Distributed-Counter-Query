@@ -9,8 +9,7 @@ import (
 type Query struct {
 	key                                string
 	nodeResponse                       map[string]int
-	nodeResponseMutex                  *sync.RWMutex
-	nodeResponseSizeList               []int
+	nodeResponseMutex                  *sync.Mutex
 	chatterSize                        int
 	maxProcessFrequency                int
 	statusCheckFrequencyInMilliSeconds int
@@ -21,8 +20,7 @@ func NewQuery(key string, chatterSize, maxProcessFrequency, statusCheckFrequency
 	query := &Query{
 		key:                                key,
 		nodeResponse:                       make(map[string]int),
-		nodeResponseMutex:                  &sync.RWMutex{},
-		nodeResponseSizeList:               []int{},
+		nodeResponseMutex:                  &sync.Mutex{},
 		chatterSize:                        chatterSize,
 		maxProcessFrequency:                maxProcessFrequency,
 		statusCheckFrequencyInMilliSeconds: statusCheckFrequencyInMilliSeconds,
@@ -35,17 +33,11 @@ func NewQuery(key string, chatterSize, maxProcessFrequency, statusCheckFrequency
 }
 
 func (query *Query) UpdateNodeResponse(node *Node) bool {
-
-	if _, ok := query.nodeResponse[node.name]; ok {
-		return false
-	}
-
 	query.nodeResponseMutex.Lock()
 	defer query.nodeResponseMutex.Unlock()
 
 	if _, ok := query.nodeResponse[node.name]; !ok {
 		query.nodeResponse[node.name] = node.Get(query.key)
-		query.nodeResponseSizeList = append(query.nodeResponseSizeList, len(query.nodeResponse))
 		return true
 	}
 
@@ -53,10 +45,11 @@ func (query *Query) UpdateNodeResponse(node *Node) bool {
 }
 
 func (query *Query) statusDaemon() {
+
+	fmt.Println(time.Now().String(), "|", "starting query daemon for key:", query.key)
+
 	go func() {
 		for {
-			time.Sleep(time.Millisecond * time.Duration(query.statusCheckFrequencyInMilliSeconds))
-
 			if query.printInfo {
 				fmt.Println(time.Now().String(), "|", "query of key:", query.key, "response:", query.nodeResponse)
 			}
@@ -66,6 +59,8 @@ func (query *Query) statusDaemon() {
 			if query.hasConverged() {
 				return
 			}
+
+			time.Sleep(time.Millisecond * time.Duration(query.statusCheckFrequencyInMilliSeconds))
 		}
 	}()
 }
@@ -75,8 +70,8 @@ func (query *Query) hasConverged() bool {
 }
 
 func (query *Query) getAggregrate() int {
-	query.nodeResponseMutex.RLock()
-	defer query.nodeResponseMutex.RUnlock()
+	query.nodeResponseMutex.Lock()
+	defer query.nodeResponseMutex.Unlock()
 
 	val := 0
 

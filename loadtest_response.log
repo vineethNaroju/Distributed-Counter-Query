@@ -1,0 +1,11 @@
+D:\Repos\Distributed-Counter-Query>go run -race .
+2022-04-11 00:53:57.2969376 +0530 IST m=+2.152223301 | starting query daemon for key: abc
+2022-04-11 00:53:57.2989382 +0530 IST m=+2.154223901 | aggregrate of key: abc val: 0
+2022-04-11 00:53:57.3079121 +0530 IST m=+2.163197801 | aggregrate of key: abc val: 4862
+2022-04-11 00:53:57.3208774 +0530 IST m=+2.176163101 | aggregrate of key: abc val: 9745
+2022-04-11 00:53:57.3574641 +0530 IST m=+2.212749801 | aggregrate of key: abc val: 60350
+2022-04-11 00:53:57.4539784 +0530 IST m=+2.309264101 | aggregrate of key: abc val: 97612
+2022-04-11 00:53:57.6264313 +0530 IST m=+2.481717001 | aggregrate of key: abc val: 100221
+2022-04-11 00:53:57.7891836 +0530 IST m=+2.644469301 | aggregrate of key: abc val: 100221
+2022-04-11 00:53:57.9083013 +0530 IST m=+2.763587001 | aggregrate of key: abc val: 100221
+2022-04-11 00:53:58.0105335 +0530 IST m=+2.865819201 | aggregrate of key: abc val: 100221
