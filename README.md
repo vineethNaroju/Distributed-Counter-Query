@@ -28,6 +28,7 @@ Gossip queries die away due to aging (or we can signal nodes to ignore / kill qu
 # Results
 1. Tested with 1000 node cluster with perpetual requests (inc key)every 1 millisecond to random node.
 2. Tested for a single query (get above key)
+3. See loadtest_response.log simulated with 10ms delay of network latency in same datacenter.
 
 # TODO
 1. Implement convergence detection and end query daemon (priority).
