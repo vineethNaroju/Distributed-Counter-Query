@@ -4,42 +4,47 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"time"
 )
 
+func generatePerpetualTraffic(nodeList []*Node, key string) {
+	for {
+		time.Sleep(time.Millisecond * 1)
+		nodeList[rand.Intn(len(nodeList))].Inc(key, rand.Intn(10000))
+	}
+}
+
 func Loadtest() {
-	maxNodes := 10
-	incReq, uniqKeys := 100000, 1000
+	// wtf to test ?
+	// 1000 nodes
+
+	printInfo := false // few print outs
+	nodeCount := 1000  // cluster node size
+	queryKey := "abc"
+	chatterSize := 5                          // speaks with atmost 5 random nodes
+	maxProcessFrequency := 3                  // a node will process this query atmost 3 times
+	statusCheckFrequencyInMilliSeconds := 500 // will print status every 500 ms
 
 	tracker := NewTracker()
 
-	nodes := []*Node{}
+	nodeList := []*Node{}
 
-	for i := 0; i < maxNodes; i++ {
-		nd := NewNode(fmt.Sprint("node-", i))
+	for i := 0; i < nodeCount; i++ {
+		nd := NewNode(fmt.Sprint("node-", i), printInfo)
 		tracker.AddNode(nd)
-		nodes = append(nodes, nd)
+		nodeList = append(nodeList, nd)
 	}
 
-	go func() {
-		for i := 0; i < incReq; i++ {
-			nodeIdx, keyIdx := rand.Intn(maxNodes), rand.Intn(uniqKeys)
-			nodes[nodeIdx].Inc(fmt.Sprint("key-", keyIdx), keyIdx)
-		}
-	}()
-
-	queryReq := 100
-	chatterSize := 3                   // talks with 3 random nodes
-	maxProcessFrequency := 3           // aging out in 3 repeatitions
-	statusCheckFrequencyInSeconds := 5 // 5 seconds
+	time.Sleep(time.Second * 2)
 
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
 
-	for i := 0; i < queryReq; i++ {
-		nodeIdx, keyIdx := rand.Intn(maxNodes), rand.Intn(uniqKeys)
-		query := NewQuery(fmt.Sprint("key-", keyIdx), chatterSize, maxProcessFrequency, statusCheckFrequencyInSeconds)
-		nodes[nodeIdx].Query(query)
-	}
+	wg.Add(1)
+	go generatePerpetualTraffic(nodeList, queryKey)
+
+	query := NewQuery(queryKey, chatterSize, maxProcessFrequency, statusCheckFrequencyInMilliSeconds, printInfo)
+
+	nodeList[nodeCount/2-1].Query(query)
 
 	wg.Wait()
 }

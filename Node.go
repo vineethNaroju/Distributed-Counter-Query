@@ -17,9 +17,10 @@ type Node struct {
 	queryChannel        chan *Query
 	queryFrequency      map[*Query]int
 	queryFrequencyMutex *sync.RWMutex
+	printInfo           bool
 }
 
-func NewNode(name string) *Node {
+func NewNode(name string, printInfo bool) *Node {
 	node := &Node{
 		name:                name,
 		store:               make(map[string]int),
@@ -29,6 +30,7 @@ func NewNode(name string) *Node {
 		queryChannel:        make(chan *Query),
 		queryFrequency:      make(map[*Query]int),
 		queryFrequencyMutex: &sync.RWMutex{},
+		printInfo:           printInfo,
 	}
 
 	node.consumeNodeListDaemon()
@@ -58,7 +60,9 @@ func (node *Node) Inc(key string, val int) {
 		node.store[key] = val
 	}
 
-	fmt.Println(time.Now().String(), "|", node.name, "inc", key, "by", val, "results in", node.store[key])
+	if node.printInfo {
+		fmt.Println(time.Now().String(), "|", node.name, "inc", key, "by", val, "results in", node.store[key])
+	}
 }
 
 func (node *Node) consumeNodeListDaemon() {
@@ -70,7 +74,9 @@ func (node *Node) consumeNodeListDaemon() {
 
 			node.nodeList = nl
 
-			fmt.Println(time.Now().String(), "|", node.name, "received node list", node.nodeNames(nl))
+			if node.printInfo {
+				fmt.Println(time.Now().String(), "|", node.name, "received node list", node.nodeNames(nl))
+			}
 
 			node.nodeListMutex.Unlock()
 		}
@@ -102,7 +108,9 @@ func (node *Node) queryLoop() {
 
 			val, ok := node.queryFrequency[query]
 
-			fmt.Println(time.Now().String(), "|", node.name, "query:", query.key, "nodeResponse:", query.nodeResponse, "node-query-freq:", val, "node-processed-query:", ok)
+			if node.printInfo {
+				fmt.Println(time.Now().String(), "|", node.name, "query:", query.key, "nodeResponse:", query.nodeResponse, "node-query-freq:", val, "node-processed-query:", ok)
+			}
 
 			if ok {
 				if 1+val > query.maxProcessFrequency {
@@ -166,7 +174,7 @@ func (node *Node) publishQueryToRandomNodes(query *Query) {
 
 	for i := 0; i < len(queryNodes); i++ {
 
-		fmt.Println(time.Now().String(), "|", node.name, "publish query", query.key, "to", queryNodes[i].name)
+		fmt.Println(time.Now().String(), "|", node.name, "publish query:", query.key, "to", queryNodes[i].name)
 
 		go func(nd *Node) {
 			nd.queryChannel <- query

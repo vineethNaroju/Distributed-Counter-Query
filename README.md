@@ -26,4 +26,3 @@ Query -
 # TODO
 1. All configurable replicas to each node and write ops (sync + async) to subset replicas.
 2. Configurable process-query loop count for each node.
-3. Publish loadtest results.

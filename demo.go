@@ -6,11 +6,18 @@ import (
 )
 
 func Demo() {
+
+	printInfo := true
+
 	tracker := NewTracker()
 
-	bob, mary, lisa, jane := NewNode("bob"), NewNode("mary"), NewNode("lisa"), NewNode("jane")
+	// nodes
+	bob, mary, lisa, jane := NewNode("bob", printInfo), NewNode("mary", printInfo), NewNode("lisa", printInfo), NewNode("jane", printInfo)
 
-	chatterSize, maxProcessFrequency := 2, 1
+	queryKey := "a"                           // inc / get for key "a"
+	chatterSize := 2                          // each node publishes to atmost 2 random un-visited nodes
+	maxProcessFrequency := 1                  // each node will process this query atmost 1 time
+	statusCheckFrequencyInMilliSeconds := 500 // display results for every 500ms
 
 	tracker.AddNode(bob)
 	time.Sleep(time.Second * 2)
@@ -24,19 +31,18 @@ func Demo() {
 	tracker.AddNode(jane)
 	time.Sleep(time.Second * 2)
 
-	bob.Inc("a", 10)
-	mary.Inc("a", 5)
-	lisa.Inc("a", 20)
-	jane.Inc("a", 2)
+	bob.Inc(queryKey, 10)
+	mary.Inc(queryKey, 5)
+	lisa.Inc(queryKey, 20)
+	jane.Inc(queryKey, 2)
 
-	time.Sleep(time.Second * 2)
-	a := NewQuery("a", chatterSize, maxProcessFrequency, 3)
+	a := NewQuery(queryKey, chatterSize, maxProcessFrequency, statusCheckFrequencyInMilliSeconds, printInfo)
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
 	bob.Query(a)
 
-	wg.Wait()
+	wg.Wait() // to simply halt main go-routine
 
 }

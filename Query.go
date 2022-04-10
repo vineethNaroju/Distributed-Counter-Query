@@ -7,24 +7,26 @@ import (
 )
 
 type Query struct {
-	key                           string
-	nodeResponse                  map[string]int
-	nodeResponseMutex             *sync.RWMutex
-	nodeResponseSizeList          []int
-	chatterSize                   int
-	maxProcessFrequency           int
-	statusCheckFrequencyInSeconds int
+	key                                string
+	nodeResponse                       map[string]int
+	nodeResponseMutex                  *sync.RWMutex
+	nodeResponseSizeList               []int
+	chatterSize                        int
+	maxProcessFrequency                int
+	statusCheckFrequencyInMilliSeconds int
+	printInfo                          bool
 }
 
-func NewQuery(key string, chatterSize, maxProcessFrequency, statusCheckFrequencyInSeconds int) *Query {
+func NewQuery(key string, chatterSize, maxProcessFrequency, statusCheckFrequencyInMilliSeconds int, printInfo bool) *Query {
 	query := &Query{
-		key:                           key,
-		nodeResponse:                  make(map[string]int),
-		nodeResponseMutex:             &sync.RWMutex{},
-		nodeResponseSizeList:          []int{},
-		chatterSize:                   chatterSize,
-		maxProcessFrequency:           maxProcessFrequency,
-		statusCheckFrequencyInSeconds: statusCheckFrequencyInSeconds,
+		key:                                key,
+		nodeResponse:                       make(map[string]int),
+		nodeResponseMutex:                  &sync.RWMutex{},
+		nodeResponseSizeList:               []int{},
+		chatterSize:                        chatterSize,
+		maxProcessFrequency:                maxProcessFrequency,
+		statusCheckFrequencyInMilliSeconds: statusCheckFrequencyInMilliSeconds,
+		printInfo:                          printInfo,
 	}
 
 	query.statusDaemon()
@@ -53,18 +55,36 @@ func (query *Query) UpdateNodeResponse(node *Node) bool {
 func (query *Query) statusDaemon() {
 	go func() {
 		for {
-			time.Sleep(time.Second * time.Duration(query.statusCheckFrequencyInSeconds))
+			time.Sleep(time.Millisecond * time.Duration(query.statusCheckFrequencyInMilliSeconds))
 
-			fmt.Print(query.nodeResponse)
+			if query.printInfo {
+				fmt.Println(time.Now().String(), "|", "query of key:", query.key, "response:", query.nodeResponse)
+			}
 
-			// for _, sz := range query.nodeResponseSizeList {
-			// 	fmt.Print(sz)
-			// 	fmt.Print(" ")
-			// }
+			fmt.Println(time.Now().String(), "|", "aggregrate of key:", query.key, "val:", query.getAggregrate())
 
-			fmt.Println()
+			if query.hasConverged() {
+				return
+			}
 		}
 	}()
+}
+
+func (query *Query) hasConverged() bool {
+	return false
+}
+
+func (query *Query) getAggregrate() int {
+	query.nodeResponseMutex.RLock()
+	defer query.nodeResponseMutex.RUnlock()
+
+	val := 0
+
+	for _, res := range query.nodeResponse {
+		val += res
+	}
+
+	return val
 }
 
 /*
