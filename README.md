@@ -8,22 +8,29 @@ Users will send inc(key, val) operations to any random node. Each node (single r
 User will query(key) a random node and a go-routine will display the query results periodically until the user is satisfied or not-enough changes are seen.
 
 # Internals
+Node gossips with random nodes for query results and we pass query pointer object (for db simulation) - to perform atomic operations.
+Gossip queries die away due to aging (or we can signal nodes to ignore / kill query).
 
-Tracker -
+## Tracker
 1. Maintains atomic store of nodes with name as primary key.
 2. Publishes node list as heartbeat to all nodes every 1 second (daemon).
 
-Node - 
+## Node
 1. Maintains atomic store of key-value pairs.
 2. A single process-query loop daemon to process incoming queries (daemon).
 3. Based on query visit frequency, can either discard query or process query.
 4. Query process simply updates query with info and sends query to random un-visited chatter-size nodes.
 
-Query -
+## Query
 1. Maintains atomic store of visited node-response pairs.
 2. A status daemon to display node-reponse periodically.
 
+# Results
+1. Tested with 1000 node cluster with perpetual requests (inc key)every 1 millisecond to random node.
+2. Tested for a single query (get above key)
+
 # TODO
-1. Implement convergence detection and end query daemon. (priority)
-2. All configurable replicas to each node and write ops (sync + async) to subset replicas. (replicas will be separate repo)
-3. Configurable process-query loop count for each node. (boring)
+1. Implement convergence detection and end query daemon (priority).
+2. Loadtest under heavy writes and decent read requests (priority).
+3. All configurable replicas to each node and write ops (sync + async) to subset replicas (later).
+4. Configurable process-query loop count for each node (boring).
