@@ -7,20 +7,24 @@ import (
 )
 
 type Query struct {
-	key                  string
-	nodeResponse         map[string]int
-	nodeResponseMutex    *sync.RWMutex
-	nodeResponseSizeList []int
-	chatterSize          int
+	key                           string
+	nodeResponse                  map[string]int
+	nodeResponseMutex             *sync.RWMutex
+	nodeResponseSizeList          []int
+	chatterSize                   int
+	maxProcessFrequency           int
+	statusCheckFrequencyInSeconds int
 }
 
-func NewQuery(key string, chatterSize int) *Query {
+func NewQuery(key string, chatterSize, maxProcessFrequency, statusCheckFrequencyInSeconds int) *Query {
 	query := &Query{
-		key:                  key,
-		nodeResponse:         make(map[string]int),
-		nodeResponseMutex:    &sync.RWMutex{},
-		nodeResponseSizeList: []int{},
-		chatterSize:          chatterSize,
+		key:                           key,
+		nodeResponse:                  make(map[string]int),
+		nodeResponseMutex:             &sync.RWMutex{},
+		nodeResponseSizeList:          []int{},
+		chatterSize:                   chatterSize,
+		maxProcessFrequency:           maxProcessFrequency,
+		statusCheckFrequencyInSeconds: statusCheckFrequencyInSeconds,
 	}
 
 	query.statusDaemon()
@@ -49,7 +53,7 @@ func (query *Query) UpdateNodeResponse(node *Node) bool {
 func (query *Query) statusDaemon() {
 	go func() {
 		for {
-			time.Sleep(time.Second * 3)
+			time.Sleep(time.Second * time.Duration(query.statusCheckFrequencyInSeconds))
 
 			fmt.Print(query.nodeResponse)
 
